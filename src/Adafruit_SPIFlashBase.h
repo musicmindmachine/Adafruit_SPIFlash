@@ -28,6 +28,17 @@
 #include "Adafruit_FlashTransport.h"
 #include "flash_devices.h"
 
+#if defined(LED_FATFS_USE_EXTERNAL_FLASH_CHIP) && LED_FATFS_USE_EXTERNAL_FLASH_CHIP == true
+#ifndef SPI_FLASH_FORCE_USE_EXTERNAL
+#undef SPI_FLASH_FORCE_USE_EXTERNAL
+#endif
+#define SPI_FLASH_FORCE_USE_EXTERNAL true
+#endif
+
+#ifndef SPI_FLASH_FORCE_USE_EXTERNAL
+#define SPI_FLASH_FORCE_USE_EXTERNAL false
+#endif
+
 // for debugging
 #define SPIFLASH_DEBUG 0
 
@@ -35,7 +46,8 @@
 //
 // If you are managing allocation of the Flash space yourself, this is the
 // class to use as it take very little RAM.
-class Adafruit_SPIFlashBase {
+class Adafruit_SPIFlashBase
+{
 public:
   Adafruit_SPIFlashBase();
   Adafruit_SPIFlashBase(Adafruit_FlashTransport *transport);
@@ -80,14 +92,18 @@ protected:
   int _ind_pin;
   bool _ind_active;
 
-  void _indicator_on(void) {
-    if (_ind_pin >= 0) {
+  void _indicator_on(void)
+  {
+    if (_ind_pin >= 0)
+    {
       digitalWrite(_ind_pin, _ind_active ? HIGH : LOW);
     }
   }
 
-  void _indicator_off(void) {
-    if (_ind_pin >= 0) {
+  void _indicator_off(void)
+  {
+    if (_ind_pin >= 0)
+    {
       digitalWrite(_ind_pin, _ind_active ? LOW : HIGH);
     }
   }

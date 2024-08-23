@@ -60,7 +60,8 @@
 //
 // Instances of this class will use 4kB of RAM as a block cache.
 class Adafruit_SPIFlash : public FsBlockDeviceInterface,
-                          public Adafruit_SPIFlashBase {
+                          public Adafruit_SPIFlashBase
+{
 public:
   Adafruit_SPIFlash();
   Adafruit_SPIFlash(Adafruit_FlashTransport *transport, bool useCache = true);
@@ -84,19 +85,23 @@ public:
   // SdFat v1 BaseBlockDRiver API for backward-compatible
   virtual bool syncBlocks() { return syncDevice(); }
 
-  virtual bool readBlock(uint32_t block, uint8_t *dst) {
+  virtual bool readBlock(uint32_t block, uint8_t *dst)
+  {
     return readSector(block, dst);
   }
 
-  virtual bool readBlocks(uint32_t block, uint8_t *dst, size_t nb) {
+  virtual bool readBlocks(uint32_t block, uint8_t *dst, size_t nb)
+  {
     return readSectors(block, dst, nb);
   }
 
-  virtual bool writeBlock(uint32_t block, const uint8_t *src) {
+  virtual bool writeBlock(uint32_t block, const uint8_t *src)
+  {
     return writeSector(block, src);
   }
 
-  virtual bool writeBlocks(uint32_t block, const uint8_t *src, size_t nb) {
+  virtual bool writeBlocks(uint32_t block, const uint8_t *src, size_t nb)
+  {
     return writeSectors(block, src, nb);
   }
 

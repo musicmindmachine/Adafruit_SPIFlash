@@ -29,16 +29,18 @@
 #include "flash_devices.h"
 
 #if SPIFLASH_DEBUG
-#define SPIFLASH_LOG(_address, _count)                                         \
-  do {                                                                         \
-    Serial.print(__FUNCTION__);                                                \
-    Serial.print(": address = ");                                              \
-    Serial.print(_address, HEX);                                               \
-    if (_count) {                                                              \
-      Serial.print(" count = ");                                               \
-      Serial.print(_count);                                                    \
-    }                                                                          \
-    Serial.println();                                                          \
+#define SPIFLASH_LOG(_address, _count) \
+  do                                   \
+  {                                    \
+    Serial.print(__FUNCTION__);        \
+    Serial.print(": address = ");      \
+    Serial.print(_address, HEX);       \
+    if (_count)                        \
+    {                                  \
+      Serial.print(" count = ");       \
+      Serial.print(_count);            \
+    }                                  \
+    Serial.println();                  \
   } while (0)
 
 #else
@@ -46,7 +48,8 @@
 
 #endif
 
-Adafruit_SPIFlashBase::Adafruit_SPIFlashBase() {
+Adafruit_SPIFlashBase::Adafruit_SPIFlashBase()
+{
   _trans = NULL;
   _flash_dev = NULL;
   _ind_pin = -1;
@@ -54,23 +57,26 @@ Adafruit_SPIFlashBase::Adafruit_SPIFlashBase() {
 }
 
 Adafruit_SPIFlashBase::Adafruit_SPIFlashBase(
-    Adafruit_FlashTransport *transport) {
+    Adafruit_FlashTransport *transport)
+{
   _trans = transport;
   _flash_dev = NULL;
   _ind_pin = -1;
   _ind_active = true;
 }
 
-#if defined(ARDUINO_ARCH_ESP32) || defined(ARDUINO_ARCH_RP2040)
+#if (defined(ARDUINO_ARCH_ESP32) || defined(ARDUINO_ARCH_RP2040)) && SPI_FLASH_FORCE_USE_EXTERNAL == false
 
 // For ESP32 and RP2040 the SPI flash is already detected and configured
 // We could skip the initial sequence
 bool Adafruit_SPIFlashBase::begin(SPIFlash_Device_t const *flash_devs,
-                                  size_t count) {
+                                  size_t count)
+{
   (void)flash_devs;
   (void)count;
 
-  if (_trans == NULL) {
+  if (_trans == NULL)
+  {
     return false;
   }
 
@@ -105,19 +111,23 @@ static const SPIFlash_Device_t possible_devices[] = {
     AT25SF041, AT25DF081A};
 
 /// Flash device list count
-enum {
+enum
+{
   EXTERNAL_FLASH_DEVICE_COUNT =
       sizeof(possible_devices) / sizeof(possible_devices[0])
 };
 
 static SPIFlash_Device_t const *findDevice(SPIFlash_Device_t const *device_list,
                                            int count,
-                                           uint8_t const (&jedec_ids)[4]) {
-  for (uint8_t i = 0; i < count; i++) {
+                                           uint8_t const (&jedec_ids)[4])
+{
+  for (uint8_t i = 0; i < count; i++)
+  {
     const SPIFlash_Device_t *dev = &device_list[i];
     if (jedec_ids[0] == dev->manufacturer_id &&
         jedec_ids[1] == dev->memory_type && // comment to appease format check
-        jedec_ids[2] == dev->capacity) {
+        jedec_ids[2] == dev->capacity)
+    {
       return dev;
     }
   }
@@ -125,8 +135,10 @@ static SPIFlash_Device_t const *findDevice(SPIFlash_Device_t const *device_list,
 }
 
 bool Adafruit_SPIFlashBase::begin(SPIFlash_Device_t const *flash_devs,
-                                  size_t count) {
-  if (_trans == NULL) {
+                                  size_t count)
+{
+  if (_trans == NULL)
+  {
     return false;
   }
 
@@ -140,24 +152,28 @@ bool Adafruit_SPIFlashBase::begin(SPIFlash_Device_t const *flash_devs,
 
   // For simplicity with commonly used device, we only check for continuation
   // code at 2nd byte (e.g Fujitsu FRAM devices)
-  if (jedec_ids[1] == 0x7F) {
+  if (jedec_ids[1] == 0x7F)
+  {
     // Shift and skip continuation code in 2nd byte
     jedec_ids[1] = jedec_ids[2];
     jedec_ids[2] = jedec_ids[3];
   }
 
   // Check for device in supplied list, if any.
-  if (flash_devs != NULL) {
+  if (flash_devs != NULL)
+  {
     _flash_dev = findDevice(flash_devs, count, jedec_ids);
   }
 
   // If not found, check for device in standard list.
-  if (_flash_dev == NULL) {
+  if (_flash_dev == NULL)
+  {
     _flash_dev =
         findDevice(possible_devices, EXTERNAL_FLASH_DEVICE_COUNT, jedec_ids);
   }
 
-  if (_flash_dev == NULL) {
+  if (_flash_dev == NULL)
+  {
 #if SPIFLASH_DEBUG
     Serial.print("Unknown flash device 0x");
     Serial.println(
@@ -168,15 +184,19 @@ bool Adafruit_SPIFlashBase::begin(SPIFlash_Device_t const *flash_devs,
 
   // We don't know what state the flash is in so wait for any remaining writes
   // and then reset (Skip this procedure for FRAM)
-  if (!_flash_dev->is_fram) {
+  if (!_flash_dev->is_fram)
+  {
 
     // The write in progress bit should be low.
-    while (readStatus() & 0x01) {
+    while (readStatus() & 0x01)
+    {
     }
 
     // The suspended write/erase bit should be low.
-    if (!_flash_dev->single_status_byte) {
-      while (readStatus2() & 0x80) {
+    if (!_flash_dev->single_status_byte)
+    {
+      while (readStatus2() & 0x80)
+      {
       }
     }
 
@@ -206,41 +226,56 @@ bool Adafruit_SPIFlashBase::begin(SPIFlash_Device_t const *flash_devs,
   _trans->setClockSpeed(wr_speed, rd_speed);
 
   // Enable Quad Mode if available
-  if (_trans->supportQuadMode() && _flash_dev->supports_qspi) {
+  if (_trans->supportQuadMode() && _flash_dev->supports_qspi)
+  {
     // Verify that QSPI mode is enabled.
     uint8_t status =
         _flash_dev->single_status_byte ? readStatus() : readStatus2();
 
     // Check the quad enable bit.
-    if ((status & _flash_dev->quad_enable_bit_mask) == 0) {
+    if ((status & _flash_dev->quad_enable_bit_mask) == 0)
+    {
       writeEnable();
 
       uint8_t full_status[2] = {0x00, _flash_dev->quad_enable_bit_mask};
 
-      if (_flash_dev->write_status_register_split) {
+      if (_flash_dev->write_status_register_split)
+      {
         _trans->writeCommand(SFLASH_CMD_WRITE_STATUS2, full_status + 1, 1);
-      } else if (_flash_dev->single_status_byte) {
+      }
+      else if (_flash_dev->single_status_byte)
+      {
         _trans->writeCommand(SFLASH_CMD_WRITE_STATUS, full_status + 1, 1);
-      } else {
+      }
+      else
+      {
         _trans->writeCommand(SFLASH_CMD_WRITE_STATUS, full_status, 2);
       }
     }
-  } else {
+  }
+  else
+  {
     // Single mode, use fast read if supported
-    if (_flash_dev->supports_fast_read) {
+    if (_flash_dev->supports_fast_read)
+    {
       _trans->setReadCommand(SFLASH_CMD_FAST_READ);
     }
   }
 
   // Addressing byte depends on total size
   uint8_t addr_byte;
-  if (_flash_dev->total_size > 16UL * 1024 * 1024) {
+  if (_flash_dev->total_size > 16UL * 1024 * 1024)
+  {
     addr_byte = 4;
     // Enable 4-Byte address mode (This has to be done after the reset above)
     _trans->runCommand(SFLASH_CMD_4_BYTE_ADDR);
-  } else if (_flash_dev->total_size > 64UL * 1024) {
+  }
+  else if (_flash_dev->total_size > 64UL * 1024)
+  {
     addr_byte = 3;
-  } else {
+  }
+  else
+  {
     addr_byte = 2;
   }
 
@@ -263,8 +298,10 @@ bool Adafruit_SPIFlashBase::begin(SPIFlash_Device_t const *flash_devs,
 
 #endif // ARDUINO_ARCH_ESP32
 
-void Adafruit_SPIFlashBase::end(void) {
-  if (_trans == NULL) {
+void Adafruit_SPIFlashBase::end(void)
+{
+  if (_trans == NULL)
+  {
     return;
   }
 
@@ -272,77 +309,98 @@ void Adafruit_SPIFlashBase::end(void) {
   _flash_dev = NULL;
 }
 
-void Adafruit_SPIFlashBase::setIndicator(int pin, bool state_on) {
+void Adafruit_SPIFlashBase::setIndicator(int pin, bool state_on)
+{
   _ind_pin = pin;
   _ind_active = state_on;
 }
 
-uint32_t Adafruit_SPIFlashBase::size(void) {
+uint32_t Adafruit_SPIFlashBase::size(void)
+{
   return _flash_dev ? _flash_dev->total_size : 0;
 }
 
-uint32_t Adafruit_SPIFlashBase::numPages(void) {
+uint32_t Adafruit_SPIFlashBase::numPages(void)
+{
   return _flash_dev ? _flash_dev->total_size / pageSize() : 0;
 }
 
 uint16_t Adafruit_SPIFlashBase::pageSize(void) { return SFLASH_PAGE_SIZE; }
 
-uint32_t Adafruit_SPIFlashBase::getJEDECID(void) {
-  if (!_flash_dev) {
+uint32_t Adafruit_SPIFlashBase::getJEDECID(void)
+{
+  if (!_flash_dev)
+  {
     return 0xFFFFFF;
-  } else {
+  }
+  else
+  {
     return (((uint32_t)_flash_dev->manufacturer_id) << 16) |
            (_flash_dev->memory_type << 8) | _flash_dev->capacity;
   }
 }
 
-uint8_t Adafruit_SPIFlashBase::readStatus() {
+uint8_t Adafruit_SPIFlashBase::readStatus()
+{
   uint8_t status;
   _trans->readCommand(SFLASH_CMD_READ_STATUS, &status, 1);
   return status;
 }
 
-uint8_t Adafruit_SPIFlashBase::readStatus2(void) {
+uint8_t Adafruit_SPIFlashBase::readStatus2(void)
+{
   uint8_t status;
   _trans->readCommand(SFLASH_CMD_READ_STATUS2, &status, 1);
   return status;
 }
 
-bool Adafruit_SPIFlashBase::isReady(void) {
-  if (_flash_dev->is_fram) {
+bool Adafruit_SPIFlashBase::isReady(void)
+{
+  if (_flash_dev->is_fram)
+  {
     return true;
-  } else {
+  }
+  else
+  {
     return (readStatus() & 0x03) == 0;
   }
 }
 
-void Adafruit_SPIFlashBase::waitUntilReady(void) {
+void Adafruit_SPIFlashBase::waitUntilReady(void)
+{
   // FRAM has no need to wait for either read or write operation
-  if (_flash_dev->is_fram) {
+  if (_flash_dev->is_fram)
+  {
     return;
   }
 
   // both WIP and WREN bit should be clear
-  while (readStatus() & 0x03) {
+  while (readStatus() & 0x03)
+  {
     yield();
   }
 }
 
-bool Adafruit_SPIFlashBase::writeEnable(void) {
+bool Adafruit_SPIFlashBase::writeEnable(void)
+{
   return _trans->runCommand(SFLASH_CMD_WRITE_ENABLE);
 }
 
-bool Adafruit_SPIFlashBase::writeDisable(void) {
+bool Adafruit_SPIFlashBase::writeDisable(void)
+{
   return _trans->runCommand(SFLASH_CMD_WRITE_DISABLE);
 }
 
-bool Adafruit_SPIFlashBase::erasePage(uint32_t pageNumber) {
-  if (!_flash_dev) {
+bool Adafruit_SPIFlashBase::erasePage(uint32_t pageNumber)
+{
+  if (!_flash_dev)
+  {
     return false;
   }
 
   // skip erase for FRAM
-  if (_flash_dev->is_fram) {
+  if (_flash_dev->is_fram)
+  {
     return true;
   }
 
@@ -362,13 +420,16 @@ bool Adafruit_SPIFlashBase::erasePage(uint32_t pageNumber) {
   return ret;
 }
 
-bool Adafruit_SPIFlashBase::eraseSector(uint32_t sectorNumber) {
-  if (!_flash_dev) {
+bool Adafruit_SPIFlashBase::eraseSector(uint32_t sectorNumber)
+{
+  if (!_flash_dev)
+  {
     return false;
   }
 
   // skip erase for FRAM
-  if (_flash_dev->is_fram) {
+  if (_flash_dev->is_fram)
+  {
     return true;
   }
 
@@ -388,13 +449,16 @@ bool Adafruit_SPIFlashBase::eraseSector(uint32_t sectorNumber) {
   return ret;
 }
 
-bool Adafruit_SPIFlashBase::eraseBlock(uint32_t blockNumber) {
-  if (!_flash_dev) {
+bool Adafruit_SPIFlashBase::eraseBlock(uint32_t blockNumber)
+{
+  if (!_flash_dev)
+  {
     return false;
   }
 
   // skip erase for fram
-  if (_flash_dev->is_fram) {
+  if (_flash_dev->is_fram)
+  {
     return true;
   }
 
@@ -412,13 +476,16 @@ bool Adafruit_SPIFlashBase::eraseBlock(uint32_t blockNumber) {
   return ret;
 }
 
-bool Adafruit_SPIFlashBase::eraseChip(void) {
-  if (!_flash_dev) {
+bool Adafruit_SPIFlashBase::eraseChip(void)
+{
+  if (!_flash_dev)
+  {
     return false;
   }
 
   // skip erase for fram
-  if (_flash_dev->is_fram) {
+  if (_flash_dev->is_fram)
+  {
     return true;
   }
 
@@ -436,8 +503,10 @@ bool Adafruit_SPIFlashBase::eraseChip(void) {
 }
 
 uint32_t Adafruit_SPIFlashBase::readBuffer(uint32_t address, uint8_t *buffer,
-                                           uint32_t len) {
-  if (!_flash_dev) {
+                                           uint32_t len)
+{
+  if (!_flash_dev)
+  {
     return 0;
   }
 
@@ -452,25 +521,30 @@ uint32_t Adafruit_SPIFlashBase::readBuffer(uint32_t address, uint8_t *buffer,
   return rc ? len : 0;
 }
 
-uint8_t Adafruit_SPIFlashBase::read8(uint32_t addr) {
+uint8_t Adafruit_SPIFlashBase::read8(uint32_t addr)
+{
   uint8_t ret;
   return readBuffer(addr, &ret, sizeof(ret)) ? ret : 0xff;
 }
 
-uint16_t Adafruit_SPIFlashBase::read16(uint32_t addr) {
+uint16_t Adafruit_SPIFlashBase::read16(uint32_t addr)
+{
   uint16_t ret;
   return readBuffer(addr, (uint8_t *)&ret, sizeof(ret)) ? ret : 0xffff;
 }
 
-uint32_t Adafruit_SPIFlashBase::read32(uint32_t addr) {
+uint32_t Adafruit_SPIFlashBase::read32(uint32_t addr)
+{
   uint32_t ret;
   return readBuffer(addr, (uint8_t *)&ret, sizeof(ret)) ? ret : 0xffffffff;
 }
 
 uint32_t Adafruit_SPIFlashBase::writeBuffer(uint32_t address,
                                             uint8_t const *buffer,
-                                            uint32_t len) {
-  if (!_flash_dev) {
+                                            uint32_t len)
+{
+  if (!_flash_dev)
+  {
     return 0;
   }
 
@@ -480,18 +554,22 @@ uint32_t Adafruit_SPIFlashBase::writeBuffer(uint32_t address,
 
   // FRAM: the whole chip can be written in one pass without waiting.
   // Also we need to explicitly disable WREN
-  if (_flash_dev->is_fram) {
+  if (_flash_dev->is_fram)
+  {
     writeEnable();
 
     _trans->writeMemory(address, buffer, len);
 
     writeDisable();
-  } else {
+  }
+  else
+  {
     uint32_t remain = len;
 
     // write one page (256 bytes) at a time and
     // must not go over page boundary
-    while (remain) {
+    while (remain)
+    {
       waitUntilReady();
       writeEnable();
 
@@ -499,7 +577,8 @@ uint32_t Adafruit_SPIFlashBase::writeBuffer(uint32_t address,
           SFLASH_PAGE_SIZE - (address & (SFLASH_PAGE_SIZE - 1));
       uint32_t const toWrite = min(remain, leftOnPage);
 
-      if (!_trans->writeMemory(address, buffer, toWrite)) {
+      if (!_trans->writeMemory(address, buffer, toWrite))
+      {
         break;
       }
 
