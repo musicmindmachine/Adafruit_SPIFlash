@@ -39,6 +39,10 @@
 #define SPI_FLASH_FORCE_USE_EXTERNAL false
 #endif
 
+#if SPI_FLASH_FORCE_USE_EXTERNAL
+#pragma message "Board is using external flash for FatFS"
+#endif
+
 // for debugging
 #define SPIFLASH_DEBUG 0
 
